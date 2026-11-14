@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoxVocab — AI Voice Vocabulary Tutor</title>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --muted: #64748B;
+      --accent: #10B981;
+      --border: #E2E8F0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+    .container { width: 100%; max-width: 680px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03); border: 1px solid var(--border); overflow: hidden; }
+    header { background: linear-gradient(135deg, #4F46E5, #6366F1); color: white; padding: 28px 24px; text-align: center; }
+    header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
+    header p { font-size: 14px; opacity: 0.9; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    
+    .main-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+    
+    /* Word Spotlight Card */
+    .word-card { background: #EEF2FF; border: 1.5px solid #C7D2FE; border-radius: 16px; padding: 20px; text-align: center; position: relative; }
+    .word-title { font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .phonetic { font-size: 14px; color: var(--muted); margin-bottom: 12px; font-style: italic; }
+    .definition { font-size: 15px; color: #1E1B4B; line-height: 1.5; margin-bottom: 12px; font-weight: 500; }
+    .example-box { background: white; border-radius: 10px; padding: 12px; font-size: 13px; color: #334155; border-left: 4px solid var(--primary); text-align: left; }
+    
+    /* Voice Interface Controls */
+    .mic-section { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 10px 0; }
+    .mic-btn { width: 80px; height: 80px; border-radius: 50%; border: none; background: linear-gradient(135deg, #4F46E5, #6366F1); color: white; font-size: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(79, 70, 229, 0.35); transition: all 0.2s ease; position: relative; }
+    .mic-btn:hover { transform: scale(1.05); }
+    .mic-btn.listening { background: #EF4444; box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.2); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    
+    .status-text { font-size: 14px; font-weight: 600; color: var(--muted); }
+    
+    /* Live Transcript & Feedback */
+    .chat-log { background: #F1F5F9; border-radius: 14px; padding: 16px; min-height: 120px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+    .bubble { padding: 10px 14px; border-radius: 12px; max-width: 85%; line-height: 1.4; }
+    .bubble.user { background: #E0E7FF; color: #1E1B4B; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .bubble.agent { background: white; color: #0F172A; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    
+    /* Next & Category Controls */
+    .controls { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .btn-secondary { background: white; border: 1.5px solid var(--border); color: #334155; font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+    .btn-secondary:hover { background: #F8FAFC; border-color: #CBD5E1; }
+    .btn-primary { background: var(--primary); border: none; color: white; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    
+    .footer { text-align: center; margin-top: 16px; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">Product Ops Working Prototype</div>
+      <h1>VoxVocab AI Voice Tutor</h1>
+      <p>Interactive Voice Agent for Workplace & Higher-Education Vocabulary Practice</p>
+    </header>
+
+    <div class="main-body">
+      <!-- Target Word Display -->
+      <div class="word-card">
+        <div class="word-title">
+          <span id="targetWord">Articulate</span>
+          <button class="btn-secondary" style="padding: 4px 8px; border-radius: 50%; font-size: 16px;" onclick="speakWord()" title="Listen to pronunciation">🔊</button>
+        </div>
+        <div class="phonetic" id="targetPhonetic">/ɑːrˈtɪk.jə.lət/ · Adjective / Verb</div>
+        <div class="definition" id="targetDef">Expressing ideas or feelings clearly in words; able to communicate coherently and effectively.</div>
+        <div class="example-box">
+          <strong>Context Example:</strong> <span id="targetExample">"She was praised for giving an articulate presentation to the university admissions panel."</span>
+        </div>
+      </div>
+
+      <!-- Voice Interaction Area -->
+      <div class="mic-section">
+        <button id="micBtn" class="mic-btn" onclick="toggleListening()">🎙️</button>
+        <div class="status-text" id="statusText">Tap the microphone and say: "Articulate" or use it in a sentence!</div>
+      </div>
+
+      <!-- Dialogue History -->
+      <div class="chat-log" id="chatLog">
+        <div class="bubble agent">
+          <strong>VoxVocab Agent:</strong> Hello! Let's practice <strong>Articulate</strong>. Press the mic and pronounce the word, or speak a full sentence using it!
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="controls">
+        <button class="btn-secondary" onclick="repeatInstructions()">🔁 Repeat Instructions</button>
+        <button class="btn-primary" onclick="nextWord()">Next Word ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Built for Apna Advantage Product Operations Challenge · Interactive Web Speech API Prototype
+  </div>
+
+  <script>
+    const vocabularyList = [
+      {
+        word: "Articulate",
+        phonetic: "/ɑːrˈtɪk.jə.lət/ · Adjective / Verb",
+        def: "Expressing ideas or feelings clearly and fluently in speech.",
+        example: "She gave an articulate summary of her project to the admissions panel."
+      },
+      {
+        word: "Pragmatic",
+        phonetic: "/præɡˈmæt.ɪk/ · Adjective",
+        def: "Dealing with things sensibly and realistically based on practical rather than theoretical considerations.",
+        example: "We need a pragmatic approach to improve learner counselling conversion rates."
+      },
+      {
+        word: "Collaborate",
+        phonetic: "/kəˈlæb.ə.reɪt/ · Verb",
+        def: "Work jointly on an activity, especially to produce or create something.",
+        example: "The product and operations teams collaborate daily to solve funnel bottlenecks."
+      },
+      {
+        word: "Resilient",
+        phonetic: "/rɪˈzɪl.jənt/ · Adjective",
+        def: "Able to withstand or recover quickly from difficult conditions.",
+        example: "The upskilling candidate was resilient despite initial job search rejections."
+      },
+      {
+        word: "Leverage",
+        phonetic: "/ˈlev.ɚ.ɪdʒ/ · Verb / Noun",
+        def: "Use something to maximum advantage to achieve a desired outcome.",
+        example: "Learners leverage UGC-recognized online degrees to unlock salary promotions."
+      }
+    ];
+
+    let currentIndex = 0;
+    let isListening = false;
+    let recognition = null;
+    const synth = window.speechSynthesis;
+
+    // Initialize Web Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        isListening = true;
+        document.getElementById('micBtn').classList.add('listening');
+        document.getElementById('statusText').innerText = "Listening... Speak clearly into your mic!";
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        handleUserSpeech(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech Error:", event.error);
+        isListening = false;
+        document.getElementById('micBtn').classList.remove('listening');
+        document.getElementById('statusText').innerText = "Could not hear clearly. Tap mic and try again!";
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        document.getElementById('micBtn').classList.remove('listening');
+      };
+    } else {
+      document.getElementById('statusText').innerText = "Web Speech API not supported on this browser. Use Chrome or Edge.";
+    }
+
+    function speakText(text, callback) {
+      if (!synth) return;
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      if (callback) utterance.onend = callback;
+      synth.speak(utterance);
+    }
+
+    function speakWord() {
+      const cur = vocabularyList[currentIndex];
+      speakText(cur.word);
+    }
+
+    function toggleListening() {
+      if (!recognition) {
+        alert("Web Speech API not supported on this browser. Please open in Google Chrome or Microsoft Edge.");
+        return;
+      }
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    function handleUserSpeech(transcript) {
+      const cur = vocabularyList[currentIndex];
+      const chatLog = document.getElementById('chatLog');
+      
+      // Append user bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = "bubble user";
+      userBubble.innerHTML = `<strong>You said:</strong> "${transcript}"`;
+      chatLog.appendChild(userBubble);
+      
+      const lowerSpeech = transcript.toLowerCase();
+      const targetLower = cur.word.toLowerCase();
+
+      let feedback = "";
+      let speaks = "";
+
+      if (lowerSpeech.includes(targetLower)) {
+        if (lowerSpeech.trim() === targetLower) {
+          feedback = `Spot on pronunciation! You correctly pronounced "${cur.word}". Now try forming a full sentence with it!`;
+          speaks = `Spot on pronunciation! You correctly said ${cur.word}. Now try making a sentence with it.`;
+        } else {
+          feedback = `Excellent! You successfully used "${cur.word}" in a real sentence. That cements your understanding. Ready for the next word?`;
+          speaks = `Excellent! You used ${cur.word} accurately in context. Ready for the next word?`;
+        }
+      } else {
+        feedback = `I heard "${transcript}". That was close, but let's try pronouncing "${cur.word}" once more. Listen closely: ${cur.word}.`;
+        speaks = `I heard ${transcript}. Let us try again. Say: ${cur.word}.`;
+      }
+
+      // Append agent response
+      const agentBubble = document.createElement('div');
+      agentBubble.className = "bubble agent";
+      agentBubble.innerHTML = `<strong>VoxVocab Agent:</strong> ${feedback}`;
+      chatLog.appendChild(agentBubble);
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      document.getElementById('statusText').innerText = "Feedback received! Tap mic to speak again.";
+      speakText(speaks);
+    }
+
+    function nextWord() {
+      currentIndex = (currentIndex + 1) % vocabularyList.length;
+      const cur = vocabularyList[currentIndex];
+      document.getElementById('targetWord').innerText = cur.word;
+      document.getElementById('targetPhonetic').innerText = cur.phonetic;
+      document.getElementById('targetDef').innerText = cur.def;
+      document.getElementById('targetExample').innerText = `"${cur.example}"`;
+      
+      const chatLog = document.getElementById('chatLog');
+      const newPrompt = document.createElement('div');
+      newPrompt.className = "bubble agent";
+      newPrompt.innerHTML = `<strong>VoxVocab Agent:</strong> Now practicing word #${currentIndex + 1}: <strong>${cur.word}</strong>. Press the mic to pronounce it!`;
+      chatLog.appendChild(newPrompt);
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      document.getElementById('statusText').innerText = `Tap the mic and pronounce: "${cur.word}"`;
+      speakText(`Next word is ${cur.word}. ${cur.def}. Tap the microphone to practice.`);
+    }
+
+    function repeatInstructions() {
+      const cur = vocabularyList[currentIndex];
+      speakText(`The current target word is ${cur.word}. Meaning: ${cur.def}. Please tap the mic and repeat the word or use it in a sentence.`);
+    }
+  </script>
+</body>
+</html>
